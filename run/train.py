@@ -31,6 +31,8 @@ def main(cfg):
     print("Config loaded successfully")
     print(cfg)
 
+    logger = utils.initialize_logger(cfg)
+
     Y_df, futr_df = utils.load_datasets(cfg)
 
     # Define validation and test size
@@ -42,13 +44,13 @@ def main(cfg):
 
     loss = hydra.utils.instantiate(cfg.loss, level=cfg.params.levels)
 
-    model_config = utils.load_model_config(cfg.model_params)
+    model_config_func = utils.load_model_config(cfg.model_params)
 
     models = [
         AutoNHITS(
             h=cfg.params.h,
             loss=loss,
-            config=cfg.model_params,
+            config=model_config_func,
             num_samples=cfg.params.n_samples,
             backend="optuna",
         )
@@ -56,7 +58,29 @@ def main(cfg):
 
     nf = NeuralForecast(models=models, freq=cfg.params.freq)
 
-    print(models[0].config)
+    Y_hat_df = nf.cross_validation(
+        df=Y_df, val_size=val_size, test_size=test_size, n_windows=None
+    )
+
+    # best config
+    results = nf.models[0].results.trials_dataframe()
+
+    best_config = results.iloc[0, :].to_dict()
+
+    val_loss = best_config["value"]
+    config_params = best_config["user_attrs_ALL_PARAMS"]
+    config_params["val_loss"] = val_loss
+
+    # logging to comet logger
+    logger.log_parameters(
+        {"initial_search_config": cfg, "best_config": config_params},
+    )
+
+    logger.log_metrics({"val_loss": val_loss})
+
+    # losses
+    # print("MAE: ", mae(y_hat, y_true))
+    # print("MSE: ", mse(y_hat, y_true))
 
 
 if __name__ == "__main__":
