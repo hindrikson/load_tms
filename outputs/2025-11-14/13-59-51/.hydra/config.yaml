@@ -1,0 +1,54 @@
+dataset:
+  root_dir: ${oc.env:PROJECT_ROOT}
+  name: entsoe-hourly
+  comet_project: ${dataset.name}
+  comet_workspace: tms
+  datasets_main_dir: /mnt/data/oe215/rhindrikson/datasets/load
+  dataset_dir: ${dataset.datasets_main_dir}/${dataset.name}
+  data: ${dataset.dataset_dir}/data.csv
+  futr: ${dataset.dataset_dir}/futr.csv
+params:
+  input_size:
+  - 24
+  - 48
+  - 72
+  encoder_hidden_size: 64, 128
+  encoder_n_layers: 2, 4
+  learning_rate:
+  - low: 0.0001
+  - high: 0.01
+  - log: true
+  scaler_type: robust
+  max_steps: 500, 1000
+  batch_size: 1, 4
+  windows_batch_size: 256
+  random_seed:
+  - low: 1
+  - high: 20
+  start_padding_enabled: true
+  n_blocks: 5 * [1]
+  mlp_units: 5 * [[64, 64]]
+  n_pool_kernel_size: null
+paths:
+  root_dir: ${oc.env:PROJECT_ROOT}
+  save_path: /mnt/data/oe215/rhindrikson/save/load
+  log_dir: ${paths.root_dir}/logs/
+  output_dir: ${hydra:runtime.output_dir}
+logger:
+  _target_: comet_ml.Experiment
+  auto_param_logging: false
+  auto_metric_logging: false
+  auto_metric_step_rate: 100
+  auto_histogram_epoch_rate: 1
+  auto_histogram_weight_logging: false
+  auto_histogram_gradient_logging: false
+  auto_histogram_activation_logging: false
+  auto_log_co2: false
+  log_env_details: false
+  log_env_gpu: false
+  log_env_cpu: false
+  log_env_network: false
+  log_env_disk: false
+  log_env_host: false
+  log_git_patch: false
+  display_summary_level: 0

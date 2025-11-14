@@ -1,0 +1,8 @@
+defaults:
+  - _self_ # with self here, repeated entries outside take preference
+  - dataset: entsoe_hourly_2022_2025
+  - loss: distribution
+  - model_params: nhits
+  - params: params
+  - paths: project_pahts
+  - logger: comet

@@ -1,0 +1,3 @@
+_target_: neuralforecast.losses.pytorch.DistributionLoss
+
+distribution: "Normal"

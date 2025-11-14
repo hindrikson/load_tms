@@ -1,0 +1,14 @@
+# path to root directory
+# this requires PROJECT_ROOT environment variable to exist
+# you can replace it with "." if you want the root to be the current working directory
+root_dir: ${oc.env:PROJECT_ROOT}
+
+name: "entsoe-hourly"
+comet_project: ${dataset.name}
+comet_workspace: "tms"
+datasets_main_dir: "/mnt/data/oe215/rhindrikson/datasets/load"
+
+dataset_dir: ${dataset.datasets_main_dir}/${dataset.name}
+
+data: ${dataset.dataset_dir}/data.csv
+futr: ${dataset.dataset_dir}/futr.csv

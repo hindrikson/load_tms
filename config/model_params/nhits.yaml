@@ -1,0 +1,58 @@
+# NHiTS Hyperparameter Search Space Configuration
+
+# Fixed parameters
+start_padding_enabled: true
+n_blocks: [1, 1, 1, 1, 1]
+mlp_units: [[64, 64], [64, 64], [64, 64], [64, 64], [64, 64]]
+scaler_type: null
+max_steps: 1000
+
+# Tunable parameters for Optuna
+
+input_size:
+  choices: [24, 48, 72]
+
+n_pool_kernel_size:
+  type: categorical
+  choices:
+    - [1, 1, 1, 1, 1]
+    - [2, 2, 2, 2, 2]
+    - [4, 4, 4, 4, 4]
+    - [8, 4, 2, 1, 1]
+
+n_freq_downsample:
+  type: categorical
+  choices:
+    - [8, 4, 2, 1, 1]
+    - [1, 1, 1, 1, 1]
+
+learning_rate:
+  type: float
+  low: 0.0001
+  high: 0.01
+  log: true
+
+batch_size:
+  type: categorical
+  choices: [1, 4, 10]
+
+windows_batch_size:
+  type: categorical
+  choices: [128, 256, 512]
+
+random_seed:
+  type: int
+  low: 1
+  high: 20
+
+activation:
+  type: categorical
+  choices: ["ReLU"]
+
+interpolation_mode:
+  type: categorical
+  choices: ["linear"]
+
+val_check_steps:
+  type: categorical
+  choices: [100]

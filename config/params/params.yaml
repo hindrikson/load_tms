@@ -1,0 +1,11 @@
+# levels of confidence for loss
+levels: 
+  - 80
+  - 90
+
+h: 24
+
+n_samples: 5
+
+freq: "h"
+
