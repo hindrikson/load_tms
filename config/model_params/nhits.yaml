@@ -1,5 +1,8 @@
 # NHiTS Hyperparameter Search Space Configuration
 
+
+default: true
+
 # Fixed parameters
 start_padding_enabled: true
 n_blocks: 5

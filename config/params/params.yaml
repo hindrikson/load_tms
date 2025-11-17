@@ -1,4 +1,8 @@
 # levels of confidence for loss
+
+val_size: 0.02
+test_size: 0.02
+
 levels: 
   - 80
   - 90
