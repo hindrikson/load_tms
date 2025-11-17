@@ -5,6 +5,7 @@ import logging
 import comet_ml  # noqa: F401
 import hydra
 import optuna  # noqa: F401
+import plotly.graph_objects as go
 import ray.tune as tune  # noqa: F401
 import rootutils
 from dotenv import load_dotenv
@@ -39,10 +40,15 @@ def main(cfg):
 
     # Define validation and test size
     n_time = len(Y_df.ds.unique())
-    val_size = int(cfg.params.val_size * n_time)
-    test_size = int(cfg.params.test_size * n_time)
-    print(n_time)
-    print(val_size)
+    val_size = int(0.05 * n_time)
+    val_size = val_size - (val_size % cfg.params.h)
+    test_size = int(0.05 * n_time)
+    test_size = test_size - (test_size % cfg.params.h)
+
+    if test_size % cfg.params.h != 0:
+        raise ValueError("Test size must be multiple of horizon")
+    if val_size % cfg.params.h != 0:
+        raise ValueError("Validation size must be multiple of horizon")
 
     # Plot the data splits
     plot = utils.val_test_plot(Y_df, val_size, test_size)
@@ -66,8 +72,14 @@ def main(cfg):
 
     # Fit models
     Y_hat_df = nf.cross_validation(
-        df=Y_df, val_size=val_size, test_size=test_size, n_windows=None
+        df=Y_df,
+        val_size=val_size,
+        test_size=test_size,
+        n_windows=cfg.params.n_windows,
+        refit=cfg.params.refit,
     )
+    print(Y_hat_df.head())
+
     # best config
     results = nf.models[0].results.trials_dataframe()
     best_config = results.iloc[0, :].to_dict()
@@ -83,7 +95,23 @@ def main(cfg):
     )
 
     # Log test results
-    fig = utils.plot_test_forecast(Y_hat_df, levels=cfg.params.levels)
+    # fig = utils.plot_test_forecast(Y_hat_df)  # , levels=cfg.params.levels)
+
+    # html_path = "./my_plot.html"
+    # fig.write_html(html_path)
+    # Log as an asset
+    # logger.log_asset(html_path)
+
+    # os.remove(html_path)
+
+    # Simple plot test
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=[1, 2, 3, 4], y=[10, 15, 13, 17]))
+    fig.update_layout(title="Simple Test Plot")
+
+    # Test with CometML
+    fig.write_html("test_plot.html")
+    logger.log_asset("test_plot.html")
 
     # losseslogg
     """

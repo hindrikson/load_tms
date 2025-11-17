@@ -23,11 +23,12 @@ def load_datasets(cfg):
 
 
 def load_nhits_model_config(cfg):
-    if cfg.model_params.default:
+    if cfg.default:
         print("Using default NHITS model configuration.")
         return None
 
     def model_config(trial):
+        print("Using custom NHITS model configuration.")
         return {
             "start_padding_enabled": cfg.start_padding_enabled,
             "n_blocks": cfg.n_blocks * [1],
@@ -82,10 +83,13 @@ def val_test_plot(df, val_size, test_size):
         x=df["ds"].unique()[-(val_size + test_size)],
         color="orange",
         linestyle="--",
-        label="Validation Start",
+        label="Validation Start (length: {})".format(val_size),
     )
     plt.axvline(
-        x=df["ds"].unique()[-test_size], color="red", linestyle="--", label="Test Start"
+        x=df["ds"].unique()[-test_size],
+        color="red",
+        linestyle="--",
+        label="Test Start, (length: {})".format(test_size),
     )
 
     plt.xlabel("Date")

@@ -1,0 +1,19 @@
+Config loaded successfully
+{'dataset': {'root_dir': '${oc.env:PROJECT_ROOT}', 'name': 'entsoe-hourly', 'comet_project': '${dataset.name}', 'comet_workspace': 'tms', 'datasets_main_dir': '/mnt/data/oe215/rhindrikson/datasets/load', 'dataset_dir': '${dataset.datasets_main_dir}/${dataset.name}', 'data': '${dataset.dataset_dir}/data.csv', 'futr': '${dataset.dataset_dir}/futr.csv'}, 'loss': {'_target_': 'neuralforecast.losses.pytorch.DistributionLoss', 'distribution': 'Normal'}, 'model_params': {'default': True, 'start_padding_enabled': True, 'n_blocks': 5, 'mlp_units': [{'n': 5}, {'shape': [64, 64]}], 'scaler_type': 'robust', 'max_steps': [500, 1000], 'input_size': [24, 48, 72], 'n_pool_kernel_size': [[1, 1, 1, 1, 1], [2, 2, 2, 2, 2], [4, 4, 4, 4, 4], [8, 4, 2, 1, 1]], 'n_freq_downsample': [[8, 4, 2, 1, 1], [1, 1, 1, 1, 1]], 'learning_rate': {'type': 'float', 'low': 0.0001, 'high': 0.01, 'log': True}, 'batch_size': [1, 4, 10], 'windows_batch_size': [128, 256, 512], 'random_seed': {'type': 'int', 'low': 1, 'high': 20}, 'activation': ['ReLU'], 'interpolation_mode': ['linear'], 'val_check_steps': [100]}, 'params': {'val_size': 0.02, 'test_size': 0.02, 'levels': [80, 90], 'h': 24, 'n_samples': 5, 'freq': 'h'}, 'paths': {'root_dir': '${oc.env:PROJECT_ROOT}', 'save_path': '/mnt/data/oe215/rhindrikson/save/load', 'log_dir': '${paths.root_dir}/logs/', 'output_dir': '${hydra:runtime.output_dir}'}, 'logger': {'_target_': 'comet_ml.Experiment', 'auto_param_logging': False, 'auto_metric_logging': False, 'auto_metric_step_rate': 100, 'auto_histogram_epoch_rate': 1, 'auto_histogram_weight_logging': False, 'auto_histogram_gradient_logging': False, 'auto_histogram_activation_logging': False, 'auto_log_co2': False, 'log_env_details': False, 'log_env_gpu': False, 'log_env_cpu': False, 'log_env_network': False, 'log_env_disk': False, 'log_env_host': False, 'log_git_patch': False, 'display_summary_level': 0}}
+COMET INFO: Experiment is live on comet.com https://www.comet.com/tms/test/5f721ac87931483ab5f03f951b5e67d9
+
+Using default NHITS model configuration.
+Error executing job with overrides: []
+Traceback (most recent call last):
+  File "/mnt/home/rmiranda/all/repos/load_tms/run/train.py", line 72, in main
+    n_windows=cfg.params.n_windows,
+              ^^^^^^^^^^^^^^^^^^^^
+omegaconf.errors.ConfigAttributeError: Key 'n_windows' is not in struct
+    full_key: params.n_windows
+    object_type=dict
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+COMET INFO: Please wait for assets to finish uploading (timeout is 10800 seconds)
+COMET INFO: All assets have been sent, waiting for delivery confirmation
+srun: error: gpu3.omnia.cluster: task 0: Exited with exit code 1
+TMS Train and Test Completed

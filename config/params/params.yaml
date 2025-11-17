@@ -1,5 +1,9 @@
 # levels of confidence for loss
 
+refit: false
+
+n_windows: null
+
 val_size: 0.02
 test_size: 0.02
 
