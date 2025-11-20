@@ -4,4 +4,6 @@
 
 lightning_logs/
 
+slurm/logs/
+
 outputs/
