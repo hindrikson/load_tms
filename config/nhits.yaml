@@ -1,6 +1,6 @@
 defaults:
   - _self_ # with self here, repeated entries outside take preference
-  - dataset: entsoe_hourly_2022_2025
+  - dataset: entsoe_15min_prognose
   - loss: distribution
   - model_params: nhits
   - params: params

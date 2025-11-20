@@ -3,6 +3,8 @@
 # you can replace it with "." if you want the root to be the current working directory
 root_dir: ${oc.env:PROJECT_ROOT}
 
+freq: "h"
+
 name: "entsoe-hourly"
 comet_project: ${dataset.name}
 comet_workspace: "tms"

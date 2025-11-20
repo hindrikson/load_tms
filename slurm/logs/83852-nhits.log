@@ -1,5 +1,0 @@
-srun: got SIGCONT
-srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
-slurmstepd: error: *** JOB 83852 ON gpu3.omnia.cluster CANCELLED AT 2025-11-19T10:02:44 ***
-srun: forcing job termination
-slurmstepd: error: *** STEP 83852.0 ON gpu3.omnia.cluster CANCELLED AT 2025-11-19T10:02:44 ***

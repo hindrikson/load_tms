@@ -1,17 +1,15 @@
 # levels of confidence for loss
 
-refit: false
+refit: true
 
 n_windows: null
 
-val_size: 0.1
-test_size: 0.1
+val_size: 10
+test_size: 5
 
 levels: 
   - 80
   - 90
 
-h: 24
-
-n_samples: 5
+n_samples: 20
 

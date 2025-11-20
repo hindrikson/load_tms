@@ -3,6 +3,7 @@
 # you can replace it with "." if you want the root to be the current working directory
 root_dir: ${oc.env:PROJECT_ROOT}
 
+h: 96 # one day
 name: "entsoe-15min"
 freq: "15min"
 comet_project: ${dataset.name}
@@ -13,4 +14,4 @@ datasets_main_dir: "/mnt/data/oe215/rhindrikson/datasets/load"
 dataset_dir: "/mnt/data/oe215/rhindrikson/datasets/load/entsoe-15min/example-processed-data"
 
 data: ${dataset.dataset_dir}/data.csv
-futr: ${dataset.dataset_dir}/futr.csv
+futr: ""

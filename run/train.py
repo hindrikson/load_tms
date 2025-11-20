@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import logging
+import time
 
 import comet_ml  # noqa: F401
 import hydra
@@ -11,6 +12,7 @@ from dotenv import load_dotenv
 from neuralforecast.auto import AutoNHITS
 from neuralforecast.core import NeuralForecast
 from omegaconf import OmegaConf
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
@@ -30,23 +32,26 @@ import utils  # noqa: F401
     config_name="nhits.yaml",
 )
 def main(cfg):
-    print("Config loaded successfully")
-    print(cfg)
+    start = time.time()
 
     logger = utils.initialize_logger(cfg)
 
     Y_df, futr_df = utils.load_datasets(cfg)
 
-    # Define validation and test size
-    n_time = len(Y_df.ds.unique())
-    val_size = int(cfg.params.val_size * n_time)
-    val_size = val_size - (val_size % cfg.params.h)
-    test_size = int(cfg.params.test_size * n_time)
-    test_size = test_size - (test_size % cfg.params.h)
+    # Define validation and test size as percentage of time series length
+    # n_time = len(Y_df.ds.unique())
+    # val_size = int(cfg.params.val_size * n_time)
+    # val_size = val_size - (val_size % cfg.params.h)
+    # test_size = int(cfg.params.test_size * n_time)
+    # test_size = test_size - (test_size % cfg.params.h)
 
-    if test_size % cfg.params.h != 0:
+    # Define the validation and test as number of windows
+    val_size = cfg.params.val_size * cfg.dataset.h
+    test_size = cfg.params.test_size * cfg.dataset.h
+
+    if test_size % cfg.dataset.h != 0:
         raise ValueError("Test size must be multiple of horizon")
-    if val_size % cfg.params.h != 0:
+    if val_size % cfg.dataset.h != 0:
         raise ValueError("Validation size must be multiple of horizon")
 
     # Plot the data splits
@@ -55,12 +60,12 @@ def main(cfg):
 
     # Load loss and model config
     loss = hydra.utils.instantiate(cfg.loss, level=cfg.params.levels)
-    config = utils.load_nhits_model_config(cfg.model_params)
+    config = utils.load_nhits_default_config(cfg.model_params)
 
     # Initialize models
     models = [
         AutoNHITS(
-            h=cfg.params.h,
+            h=cfg.dataset.h,
             loss=loss,
             config=config,
             num_samples=cfg.params.n_samples,
@@ -74,64 +79,61 @@ def main(cfg):
         df=Y_df,
         val_size=val_size,
         test_size=test_size,
+        step_size=cfg.dataset.h,
         n_windows=cfg.params.n_windows,
         refit=cfg.params.refit,
     )
-    print("DUPLICATES")
-    print(Y_hat_df["ds"].duplicated().sum())
-    # print(Y_hat_df.dtypes)
-    # print(Y_hat_df.info())
+    if len(Y_hat_df) != test_size:
+        raise ValueError(
+            f"Forecast length {len(Y_hat_df)} does not match test size {test_size}"
+        )
 
-    # Log plot
-    fig = utils.plot_test_forecast(Y_hat_df, levels=cfg.params.levels)
+    # create figure
+    fig = utils.add_temp_plot(Y_df, test_size)
+    fig = utils.plot_test_forecast(Y_hat_df, fig, levels=cfg.params.levels)
+
+    # log as html
     html_str = fig.to_html()
     logger.log_html(html_str)
 
+    # log as asset
     html_path = "./my_plot.html"
     fig.write_html(html_path)
-    # Log as an asset
     logger.log_asset(html_path)
 
-    # best config
+    # get best config
     results = nf.models[0].results.trials_dataframe()
     best_config = results.iloc[0, :].to_dict()
+    test_loss = best_config["value"]
 
-    val_loss = best_config["value"]
     config_params = best_config["user_attrs_ALL_PARAMS"]
-    config_params["val_loss"] = val_loss
+    config_params["test_loss"] = test_loss
 
     # Log loss and best config parameters
-    logger.log_metrics({"val_loss": val_loss})
+    logger.log_metrics({"test_loss": test_loss})
     logger.log_parameters(
         {"initial_search_config": cfg, "best_config": config_params},
     )
 
-    # Log test results
-    # fig = utils.plot_test_forecast(Y_hat_df)  # , levels=cfg.params.levels)
-
-    # os.remove(html_path)
-
-    # Simple plot test
-    # fig = go.Figure()
-    # fig.add_trace(go.Scatter(x=[1, 2, 3, 4], y=[10, 15, 13, 17]))
-    # fig.update_layout(title="Simple Test Plot")
-
-    # losseslogg
-    """
-    y_true = Y_hat_df.y.values
+    # log losses
     y_hat = Y_hat_df["AutoNHITS"].values
+    y_true = Y_hat_df["y"].values
 
-    n_series = len(Y_df.unique_id.unique())
+    mae_loss = mean_absolute_error(y_true, y_hat)
+    mse_loss = mean_squared_error(y_true, y_hat)
+    print(f"Test MAE: {mae_loss}")
+    print(f"Test MSE: {mse_loss}")
 
-    y_true = y_true.reshape(n_series, -1, horizon)
-    y_hat = y_hat.reshape(n_series, -1, horizon)
+    # Log test losses
+    logger.log_metrics(
+        {
+            "test_mae": mae_loss,
+            "test_mse": mse_loss,
+        }
+    )
 
-    print("Parsed results")
-    print("2. y_true.shape (n_series, n_windows, n_time_out):\t", y_true.shape)
-    print("2. y_hat.shape  (n_series, n_windows, n_time_out):\t", y_hat.shape)
-    # print("MAE: ", mae(y_hat, y_true))
-    # print("MSE: ", mse(y_hat, y_true))
-    """
+    end = time.time()
+    print(f"Total time: {(end - start) / 60:.2f} minutes")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 import hydra
 import pandas as pd
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 
 def initialize_logger(cfg):
@@ -20,60 +21,109 @@ def load_datasets(cfg):
     Y_df = pd.read_csv(cfg.dataset.data, parse_dates=["ds"])
     try:
         futr_df = pd.read_csv(cfg.dataset.futr, parse_dates=["ds"])
-    except AttributeError:
+    except (AttributeError, FileNotFoundError):
         print("No future covariates provided.")
         futr_df = None
     return Y_df, futr_df
 
 
-def load_nhits_model_config(cfg):
-    if cfg.default:
-        print("Using default NHITS model configuration.")
-        return None
+def load_nhits_default_config(cfg):
+    """
+    Default NHITS model configuration.
+    """
+    print("Using custom NHITS model configuration.")
 
     def model_config(trial):
-        print("Using custom NHITS model configuration.")
         return {
-            "start_padding_enabled": cfg.start_padding_enabled,
-            "n_blocks": cfg.n_blocks * [1],
-            "mlp_units": cfg.mlp_units.n * cfg.mlp_units.shape,
-            "scaler_type": cfg.scaler_type,
-            "max_steps": trial.suggest_categorical("max_steps", tuple(cfg.max_steps)),
-            "input_size": trial.suggest_categorical(
-                "input_size", tuple(cfg.input_size)
+            "h": cfg.dataset.h,
+            "hist_exog_list": [
+                "temperature",
+                "week_day",
+                "is_holiday",
+                "day_before_holiday",
+                "day_after_holiday",
+            ],
+            "input_size_multiplier": trial.suggest_categorical(
+                "input_size_multiplier", [1, 2, 3, 4, 5]
             ),
             "n_pool_kernel_size": trial.suggest_categorical(
-                "n_pool_kernel_size", tuple(cfg.n_pool_kernel_size)
+                "n_pool_kernel_size",
+                [[2, 2, 1], [1, 1, 1], [2, 2, 2], [4, 4, 4], [8, 4, 1], [16, 8, 1]],
             ),
             "n_freq_downsample": trial.suggest_categorical(
-                "n_freq_downsample", tuple(cfg.n_freq_downsample)
+                "n_freq_downsample",
+                [
+                    [168, 24, 1],
+                    [24, 12, 1],
+                    [180, 60, 1],
+                    [60, 8, 1],
+                    [40, 20, 1],
+                    [1, 1, 1],
+                ],
             ),
             "learning_rate": trial.suggest_float(
-                "learning_rate",
-                low=cfg.learning_rate.low,
-                high=cfg.learning_rate.high,
-                log=cfg.learning_rate.log,
+                "learning_rate", low=0.0001, high=0.1, log=True
             ),
-            "batch_size": trial.suggest_categorical(
-                "batch_size", tuple(cfg.batch_size)
+            "scaler_type": trial.suggest_categorical(
+                "scaler_type", [None, "robust", "standard"]
             ),
+            "max_steps": trial.suggest_int("max_steps", 500, 1500),
+            "batch_size": trial.suggest_categorical("batch_size", [32, 64, 128, 256]),
             "windows_batch_size": trial.suggest_categorical(
-                "window_batch_size", tuple(cfg.window_batch_size)
+                "windows_batch_size", [128, 256, 512, 1024]
             ),
-            "random_seed": trial.suggest_categorical(
-                "random_seed", low=cfg.random_seed.low, high=cfg.random_seed.high
-            ),
-            "activation": trial.suggest_categorical("activation", (cfg.activation)),
-            "interpolation_mode": trial.suggest_categorical(
-                "interpolation_mode",
-                (cfg.interpolation_mode),
-            ),
-            "val_check_steps": trial.suggest_categorical(
-                "val_check_steps", (cfg.val_check_steps)
-            ),
+            "random_seed": trial.suggest_int("random_seed", 1, 20),
         }
 
-    return model_config
+
+# def load_nhits_model_config(cfg):
+#     if cfg.default:
+#         print("Using default NHITS model configuration.")
+#         return None
+#
+#     def model_config(trial):
+#         print("Using custom NHITS model configuration.")
+#         return {
+#             "start_padding_enabled": cfg.start_padding_enabled,
+#             "n_blocks": cfg.n_blocks * [1],
+#             "mlp_units": cfg.mlp_units.n * cfg.mlp_units.shape,
+#             "scaler_type": cfg.scaler_type,
+#             "max_steps": trial.suggest_categorical("max_steps", tuple(cfg.max_steps)),
+#             "input_size": trial.suggest_categorical(
+#                 "input_size", tuple(cfg.input_size)
+#             ),
+#             "n_pool_kernel_size": trial.suggest_categorical(
+#                 "n_pool_kernel_size", tuple(cfg.n_pool_kernel_size)
+#             ),
+#             "n_freq_downsample": trial.suggest_categorical(
+#                 "n_freq_downsample", tuple(cfg.n_freq_downsample)
+#             ),
+#             "learning_rate": trial.suggest_float(
+#                 "learning_rate",
+#                 low=cfg.learning_rate.low,
+#                 high=cfg.learning_rate.high,
+#                 log=cfg.learning_rate.log,
+#             ),
+#             "batch_size": trial.suggest_categorical(
+#                 "batch_size", tuple(cfg.batch_size)
+#             ),
+#             "windows_batch_size": trial.suggest_categorical(
+#                 "window_batch_size", tuple(cfg.window_batch_size)
+#             ),
+#             "random_seed": trial.suggest_categorical(
+#                 "random_seed", low=cfg.random_seed.low, high=cfg.random_seed.high
+#             ),
+#             "activation": trial.suggest_categorical("activation", (cfg.activation)),
+#             "interpolation_mode": trial.suggest_categorical(
+#                 "interpolation_mode",
+#                 (cfg.interpolation_mode),
+#             ),
+#             "val_check_steps": trial.suggest_categorical(
+#                 "val_check_steps", (cfg.val_check_steps)
+#             ),
+#         }
+#
+#     return model_config
 
 
 def val_test_plot(df, val_size, test_size):
@@ -109,7 +159,7 @@ def val_test_plot(df, val_size, test_size):
 # Y_hat_test = Y_hat_df[Y_hat_df['cutoff'] == last_cutoff]
 
 
-def plot_test_forecast(df_hat, levels=None):
+def plot_test_forecast(df_hat, fig, levels=None):
     """
     Plot historical data and forecasts with optional prediction intervals.
 
@@ -120,10 +170,10 @@ def plot_test_forecast(df_hat, levels=None):
     levels : list of int, optional
         Confidence levels for prediction intervals (e.g., [80, 90])
     """
-    latest_cutoff = df_hat["cutoff"].max()
-    df_hat = df_hat[df_hat["cutoff"] == latest_cutoff].copy()
-
-    df_hat = df_hat.tail(100)
+    # latest_cutoff = df_hat["cutoff"].max()
+    # df_hat = df_hat[df_hat["cutoff"] == latest_cutoff].copy()
+    #
+    # df_hat = df_hat.tail(100)
 
     dash_styles = ["solid", "dot", "dash", "longdash", "dashdot", "longdashdot"]
 
@@ -139,8 +189,6 @@ def plot_test_forecast(df_hat, levels=None):
         ):
             models.append(col)
 
-    fig = go.Figure()
-
     # Add historical data
     fig.add_trace(
         go.Scatter(
@@ -149,7 +197,8 @@ def plot_test_forecast(df_hat, levels=None):
             mode="lines",
             name="Historical",
             line=dict(color="black", width=2),
-        )
+        ),
+        secondary_y=False,
     )
 
     # Add forecasts and prediction intervals
@@ -166,7 +215,8 @@ def plot_test_forecast(df_hat, levels=None):
                 mode="lines",
                 name=model,
                 line=dict(dash=dash_styles[i % len(dash_styles)], color=color, width=2),
-            )
+            ),
+            secondary_y=False,
         )
 
         # Add prediction intervals if levels are provided
@@ -184,8 +234,9 @@ def plot_test_forecast(df_hat, levels=None):
                             mode="lines",
                             line=dict(width=0),
                             showlegend=False,
-                            hoverinfo="skip",
-                        )
+                            hoverinfo="all",
+                        ),
+                        secondary_y=False,
                     )
 
                     # Add lower bound with fill
@@ -198,18 +249,41 @@ def plot_test_forecast(df_hat, levels=None):
                             fillcolor=f"rgba({int(color == 'blue') * 0},{int(color == 'red') * 255},{int(color == 'green') * 0},0.{100 - level // 2})",
                             fill="tonexty",
                             name=f"{model} {level}% PI",
-                            hoverinfo="skip",
-                        )
+                            hoverinfo="all",
+                        ),
+                        secondary_y=False,
                     )
+
+    fig.update_yaxes(title_text="Load", secondary_y=False)
 
     fig.update_layout(
         title="Germany Historical vs Forecast",
         width=1400,
         height=500,
         xaxis_title="Date",
-        yaxis_title="Value",
         hovermode="x unified",
     )
+
+    return fig
+
+
+def add_temp_plot(y_df, test_size):
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+    # --- Second trace: Temperature (secondary y-axis) ---
+    fig.add_trace(
+        go.Scatter(
+            x=y_df["ds"][-test_size:],
+            y=y_df["temperature"][-test_size:],
+            mode="lines",
+            name="Temperature",
+            line={"color": "orange", "width": 2.0},
+        ),
+        secondary_y=True,
+    )
+
+    # Axis labels
+    fig.update_yaxes(title_text="Temperature (°C)", secondary_y=True)
 
     return fig
 
