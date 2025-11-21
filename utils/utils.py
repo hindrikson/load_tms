@@ -9,7 +9,7 @@ def initialize_logger(cfg):
         logger = hydra.utils.instantiate(
             cfg.logger,
             workspace=cfg.dataset.comet_workspace,
-            project_name="test",
+            project_name=cfg.dataset.name,
         )
 
         return logger
