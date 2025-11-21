@@ -1,5 +1,6 @@
 # levels of confidence for loss
 
+experiment_name: "nhits"
 refit: true
 
 n_windows: null

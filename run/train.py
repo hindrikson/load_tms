@@ -36,6 +36,9 @@ def main(cfg):
 
     logger = utils.initialize_logger(cfg)
 
+    # set experiment name
+    logger.set_name(cfg.params.experiment_name)
+
     Y_df, futr_df = utils.load_datasets(cfg)
 
     # Define validation and test size as percentage of time series length
@@ -112,7 +115,8 @@ def main(cfg):
     # Log loss and best config parameters
     logger.log_metrics({"test_loss": test_loss})
     logger.log_parameters(
-        {"initial_search_config": cfg, "best_config": config_params},
+        {"best_config": config_params},
+        {"params": cfg.params},
     )
 
     # log losses
