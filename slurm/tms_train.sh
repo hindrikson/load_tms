@@ -15,7 +15,8 @@ conda activate tms
  
 cd /mnt/home/rmiranda/all/repos/load_tms/run/
 
-srun python3 train.py
+srun python3 train.py \
+    loss.distribution="StudentT"
 
 
 

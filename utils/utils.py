@@ -27,6 +27,169 @@ def load_datasets(cfg):
     return Y_df, futr_df
 
 
+def parse_list_param(param_str):
+    return [int(x) for x in param_str.strip("[]").split(",")]
+
+
+def load_nhits_default_config2(cfg):
+    def model_config(trial):
+        # Suggest an index for the categorical choice
+        n_pool_kernel_size_idx = trial.suggest_categorical(
+            "n_pool_kernel_size_idx", [0, 1, 2, 3, 4, 5]
+        )
+        n_freq_downsample_idx = trial.suggest_categorical(
+            "n_freq_downsample_idx", [0, 1, 2, 3, 4, 5]
+        )
+
+        # Define the actual values
+        n_pool_kernel_size_choices = [
+            [2, 2, 1],
+            [1, 1, 1],
+            [2, 2, 2],
+            [4, 4, 4],
+            [8, 4, 1],
+            [16, 8, 1],
+        ]
+        n_freq_downsample_choices = [
+            [168, 24, 1],
+            [24, 12, 1],
+            [180, 60, 1],
+            [60, 8, 1],
+            [40, 20, 1],
+            [1, 1, 1],
+        ]
+
+        # Handle MockTrial returning the whole list instead of an index
+        if isinstance(n_pool_kernel_size_idx, list):
+            n_pool_kernel_size_idx = 0
+        if isinstance(n_freq_downsample_idx, list):
+            n_freq_downsample_idx = 0
+
+        # Get the selected values
+        n_pool_kernel_size = n_pool_kernel_size_choices[n_pool_kernel_size_idx]
+        n_freq_downsample = n_freq_downsample_choices[n_freq_downsample_idx]
+
+        # Get input_size_multiplier
+        input_size_multiplier = trial.suggest_categorical(
+            "input_size_multiplier", [1, 2, 3, 4, 5]
+        )
+
+        # Store the actual list values as user attributes for later reference
+        # MockTrial doesn't have set_user_attr, so check if it exists
+        if hasattr(trial, "set_user_attr"):
+            trial.set_user_attr("n_pool_kernel_size", n_pool_kernel_size)
+            trial.set_user_attr("n_freq_downsample", n_freq_downsample)
+
+        return {
+            "input_size": cfg.dataset.h * input_size_multiplier,
+            "hist_exog_list": [
+                "temperature",
+                "week_day",
+                "is_holiday",
+                "day_before_holiday",
+                "day_after_holiday",
+            ],
+            "n_pool_kernel_size": n_pool_kernel_size,
+            "n_freq_downsample": n_freq_downsample,
+            "learning_rate": trial.suggest_float(
+                "learning_rate", low=0.0001, high=0.1, log=True
+            ),
+            "scaler_type": trial.suggest_categorical(
+                "scaler_type", [None, "robust", "standard"]
+            ),
+            "max_steps": trial.suggest_int("max_steps", 500, 1500),
+            "batch_size": trial.suggest_categorical("batch_size", [32, 64, 128, 256]),
+            "windows_batch_size": trial.suggest_categorical(
+                "windows_batch_size", [128, 256, 512, 1024]
+            ),
+            "random_seed": trial.suggest_int("random_seed", 1, 20),
+        }
+
+    return model_config
+
+
+def load_custom_nhits_config(cfg):
+    def model_config(trial):
+        # Suggest an index for the categorical choice
+        n_pool_kernel_size_idx = trial.suggest_categorical(
+            "n_pool_kernel_size_idx", [0, 1, 2, 3, 4, 5]
+        )
+        n_freq_downsample_idx = trial.suggest_categorical(
+            "n_freq_downsample_idx", [0, 1, 2, 3, 4, 5]
+        )
+
+        # Define the actual values
+        n_pool_kernel_size_choices = [
+            [2, 2, 1],
+            [1, 1, 1],
+            [2, 2, 2],
+            [4, 4, 4],
+            [8, 4, 1],
+            [16, 8, 1],
+        ]
+        n_freq_downsample_choices = [
+            [168, 24, 1],
+            [24, 12, 1],
+            [180, 60, 1],
+            [60, 8, 1],
+            [40, 20, 1],
+            [1, 1, 1],
+        ]
+
+        # Handle MockTrial returning the whole list instead of an index
+        if isinstance(n_pool_kernel_size_idx, list):
+            n_pool_kernel_size_idx = 0
+        if isinstance(n_freq_downsample_idx, list):
+            n_freq_downsample_idx = 0
+
+        # Get the selected values
+        n_pool_kernel_size = n_pool_kernel_size_choices[n_pool_kernel_size_idx]
+        n_freq_downsample = n_freq_downsample_choices[n_freq_downsample_idx]
+
+        # Get input_size_multiplier
+        input_size_multiplier = trial.suggest_categorical(
+            "input_size_multiplier",
+            [1, 4, 8, 10, 32, 64, 200],  # More input sizes multipliers
+        )
+
+        # Store the actual list values as user attributes for later reference
+        # MockTrial doesn't have set_user_attr, so check if it exists
+        if hasattr(trial, "set_user_attr"):
+            trial.set_user_attr("n_pool_kernel_size", n_pool_kernel_size)
+            trial.set_user_attr("n_freq_downsample", n_freq_downsample)
+
+        return {
+            "input_size": cfg.dataset.h * input_size_multiplier,
+            "hist_exog_list": [
+                "temperature",
+                "week_day",
+                "is_holiday",
+                "day_before_holiday",
+                "day_after_holiday",
+            ],
+            "n_pool_kernel_size": n_pool_kernel_size,
+            "n_freq_downsample": n_freq_downsample,
+            "learning_rate": trial.suggest_float(
+                "learning_rate",
+                low=0.0001,
+                high=0.01,
+                log=True,  # hight 0.01 instead of 0.1. "NaN loss values encountered"
+            ),
+            "scaler_type": trial.suggest_categorical(
+                "scaler_type",
+                ["robust", "standard"],  # Remove None option due to wheather data
+            ),
+            "max_steps": trial.suggest_int("max_steps", 500, 1500),
+            "batch_size": trial.suggest_categorical("batch_size", [32, 64, 128, 256]),
+            "windows_batch_size": trial.suggest_categorical(
+                "windows_batch_size", [128, 256, 512, 1024]
+            ),
+            "random_seed": trial.suggest_int("random_seed", 1, 20),
+        }
+
+    return model_config
+
+
 def load_nhits_default_config(cfg):
     """
     Default NHITS model configuration.

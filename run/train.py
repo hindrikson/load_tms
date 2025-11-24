@@ -63,7 +63,7 @@ def main(cfg):
 
     # Load loss and model config
     loss = hydra.utils.instantiate(cfg.loss, level=cfg.params.levels)
-    config = utils.load_nhits_default_config(cfg.model_params)
+    config = utils.load_custom_nhits_config(cfg)
 
     # Initialize models
     models = [
@@ -106,18 +106,22 @@ def main(cfg):
 
     # get best config
     results = nf.models[0].results.trials_dataframe()
-    best_config = results.iloc[0, :].to_dict()
-    test_loss = best_config["value"]
+    logger.log_table("trials_dataframe.csv", results)
 
-    config_params = best_config["user_attrs_ALL_PARAMS"]
-    config_params["test_loss"] = test_loss
+    # Get the trial with the lowest validation loss
+    best_trial = results.loc[results["value"].idxmin()].to_dict()
+    val_loss = best_trial["value"]
 
+    config_params = best_trial["user_attrs_ALL_PARAMS"]
+    config_params["val_loss"] = val_loss
+
+    # Or simply merge and log:
+    all_params = {
+        "best_config": config_params,
+        "all_params": cfg,
+    }
     # Log loss and best config parameters
-    logger.log_metrics({"test_loss": test_loss})
-    logger.log_parameters(
-        {"best_config": config_params},
-        {"params": cfg.params},
-    )
+    logger.log_parameters(all_params)
 
     # log losses
     y_hat = Y_hat_df["AutoNHITS"].values
@@ -131,6 +135,7 @@ def main(cfg):
     # Log test losses
     logger.log_metrics(
         {
+            "val_loss": val_loss,
             "test_mae": mae_loss,
             "test_mse": mse_loss,
         }

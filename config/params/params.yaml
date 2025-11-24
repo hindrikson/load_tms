@@ -5,12 +5,12 @@ refit: true
 
 n_windows: null
 
-val_size: 10
+val_size: 50
 test_size: 5
 
 levels: 
   - 80
   - 90
 
-n_samples: 20
+n_samples: 100
 
